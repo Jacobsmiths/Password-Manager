@@ -24,13 +24,13 @@ class UserService:
             print("User found")
             return True
 
-    def setUpUser(self, username, passwordInput, authService):
+    def setUpUser(self, username, passwordInput):
         if(not self.user_data_file_local):
             user_data_file = '_'.join(username.split() + ['data.json'])
             self.user_data_file_local = os.path.join(DATA_DIR, user_data_file)
 
         if not os.path.exists(self.user_data_file_local):
-            hashed_password, salt = authService.hashPassword(passwordInput)
+            hashed_password, salt = self.hashPassword(passwordInput)
             with open(self.user_data_file_local, 'w') as f:
                 user_data = {
                     "username": username,
@@ -42,13 +42,32 @@ class UserService:
             print(f"User created")
         else:
             print(f"User already exists")
+        
+    # def addPassword(self, password, website, webNickName=None):
+    #     if os.path.exists(self.user_data_file_local):
+    #         hashed_password, salt = self.hashPassword(passwordInput)
+    #         with open(self.user_data_file_local, 'w') as f:
+    #             user_data = {
+    #                 "username": username,
+    #                 "hashedPass": hashed_password,
+    #                 "salt": salt,
+    #                 "passwords": []
+    #             }
+    #             json.dump(user_data, f)
+    #         print(f"User created")
+    #     else:
+    #         print(f"User already exists")
 
-
-# this class aids in password/ encryption management and authentication
-class AuthService:
-    def __init__(self):
-        self.user_data_file_local = None
-
+    # def getData(self):
+    #     try:s
+    #         with open(filename, 'r') as file:
+    #         data = json.load(file)
+    #         return data
+    #     except FileNotFoundError:
+    #         return {"passwords": []}
+    #     except json.JSONDecodeError:
+    #         return {"passwords": []}
+        
     def hashPassword(self, password):
         #this generates a salt used to add onto the end of passwords and this creats a 16 byte in hex (32 digits of hex)
         salt = secrets.token_hex(16)
@@ -76,3 +95,4 @@ class AuthService:
         else:
             print("No user data file found for user:")
             return None
+        

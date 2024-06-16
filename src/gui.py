@@ -4,21 +4,18 @@ import customtkinter as ctk
 ctk.set_appearance_mode("dark")
 
 class app(ctk.CTk):
-    def __init__(self, userService, authService):
+    def __init__(self, userService):
         super().__init__()
         self.geometry("1000x600")
         self.title("Jacob's Ultra Protected Password Manager")
 
         self.userService = userService
-        self.authService = authService
 
         container = ctk.CTkFrame(self)
         container.pack(fill="both", expand=True)
-        # container.grid_rowconfigure(0, weight=1)
-        # container.grid_columnconfigure(0, weight=1)
 
         self.frames = {
-            "initialLoginFrame" : initialLoginFrame(parent=container, controller=self, userService=self.userService, authService=self.authService),
+            "initialLoginFrame" : initialLoginFrame(parent=container, controller=self, userService=self.userService),
             "passwordDisplayFrame": passwordDisplayFrame(parent=container, userService=self.userService)
         }
     
@@ -30,16 +27,13 @@ class app(ctk.CTk):
         self.current_frame.pack_forget()
         self.current_frame = self.frames[frame.__name__]
         self.current_frame.pack(expand=True, fill="both")
-       
-        
 
 class initialLoginFrame(ctk.CTkFrame):
-    def __init__(self, parent, controller, userService, authService, **kwargs):
+    def __init__(self, parent, controller, userService, **kwargs):
         super().__init__(parent, **kwargs)
         # self.pack(expand=True, fill="both")
 
         self.userService = userService
-        self.authService = authService
         self.controller = controller
 
         self.label = ctk.CTkLabel(self, text='Login',corner_radius=8, font=("Helvetica", 20))
@@ -63,7 +57,7 @@ class initialLoginFrame(ctk.CTkFrame):
 
         # checks if user exists using the userService class
         if(self.userService.checkUser(username)):
-            if(self.authService.verifyUser(username, password)):
+            if(self.userService.verifyUser(username, password)):
                 print("correct Password")
                 self.controller.showFrame(passwordDisplayFrame)
                 
@@ -72,17 +66,15 @@ class initialLoginFrame(ctk.CTkFrame):
         else:
             response = messagebox.askyesno("No User Found", "Do you want to create a new user?")
             if response:
-                self.userService.setUpUser(username, password, self.authService)
+                self.userService.setUpUser(username, password)
 
 
 class passwordDisplayFrame(ctk.CTkFrame):
     def __init__(self, parent, userService, **kwargs):
         super().__init__(parent, **kwargs)
-        # self.pack(expand=True, fill="both")
 
         self.userService = userService
 
         self.lab = ctk.CTkLabel(self, text='FART!!!!!',corner_radius=8, font=("Helvetica", 20))
         self.lab.pack()
-
         
