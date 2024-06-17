@@ -6,7 +6,7 @@ ctk.set_appearance_mode("dark")
 class app(ctk.CTk):
     def __init__(self, userService):
         super().__init__()
-        self.geometry("1000x600")
+        self.geometry("1200x800")
         self.title("Jacob's Ultra Protected Password Manager")
 
         self.userService = userService
@@ -15,12 +15,12 @@ class app(ctk.CTk):
         container.pack(fill="both", expand=True)
 
         self.frames = {
-            "initialLoginFrame" : initialLoginFrame(parent=container, controller=self, userService=self.userService),
-            "passwordDisplayFrame": passwordDisplayFrame(parent=container, userService=self.userService)
+            "InitialLoginFrame" : InitialLoginFrame(parent=container, controller=self, userService=self.userService),
+            "PasswordManagerContainer": PasswordManagerContainer(parent=container, userService=self.userService)
         }
     
 
-        self.current_frame = self.frames[initialLoginFrame.__name__]
+        self.current_frame = self.frames[InitialLoginFrame.__name__]
         self.current_frame.pack(expand=True, fill="both")
 
     def showFrame(self, frame):
@@ -28,7 +28,7 @@ class app(ctk.CTk):
         self.current_frame = self.frames[frame.__name__]
         self.current_frame.pack(expand=True, fill="both")
 
-class initialLoginFrame(ctk.CTkFrame):
+class InitialLoginFrame(ctk.CTkFrame):
     def __init__(self, parent, controller, userService, **kwargs):
         super().__init__(parent, **kwargs)
         # self.pack(expand=True, fill="both")
@@ -59,7 +59,7 @@ class initialLoginFrame(ctk.CTkFrame):
         if(self.userService.checkUser(username)):
             if(self.userService.verifyUser(username, password)):
                 print("correct Password")
-                self.controller.showFrame(passwordDisplayFrame)
+                self.controller.showFrame(PasswordManagerContainer)
                 
             else: 
                 print("incorrect password")
@@ -69,12 +69,70 @@ class initialLoginFrame(ctk.CTkFrame):
                 self.userService.setUpUser(username, password)
 
 
-class passwordDisplayFrame(ctk.CTkFrame):
+class PasswordManagerContainer(ctk.CTkFrame):
     def __init__(self, parent, userService, **kwargs):
         super().__init__(parent, **kwargs)
 
         self.userService = userService
+        self.passwordDisplay = PasswordDisplayFrame(parent=self, userService=self.userService)
+        self.passwordGenerator = PasswordGeneratorFrame(parent=self,userService=self.userService)
+        self.passwordManager = PasswordManagerFrame(parent=self, userSerice=self.userService, width=450)
 
-        self.lab = ctk.CTkLabel(self, text='FART!!!!!',corner_radius=8, font=("Helvetica", 20))
-        self.lab.pack()
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1,weight=1)
+        self.grid_rowconfigure(2,weight=1)
+
+        self.passwordManager.grid(row=0, column=0, rowspan=3,sticky="nsw", padx= 5, pady=5)
+        self.passwordDisplay.grid(row=0, column=1, rowspan=2, sticky="news", padx= 5, pady=5)
+        self.passwordGenerator.grid(row=2, column=1, sticky="news", padx= 5, pady=5)
+        self.passwordManager.propagate(False)
+        self.passwordGenerator.propagate(True)
+        self.passwordDisplay.propagate(False)
+    
+class PasswordDisplayFrame(ctk.CTkFrame):
+    def __init__(self, parent, userService, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.userService = userService
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=1)
         
+        headers = ["Website", "Username", "Password"]
+        for col, header in enumerate(headers):
+            label = ctk.CTkLabel(self, text=header)
+            label.grid(row=0, column=col, pady=10)
+        
+        # for row, (website, username, password) in enumerate(entries, start=1):
+        #     website_entry = ctk.CTkEntry(self)
+        #     website_entry.insert(0, website)
+        #     website_entry.grid(row=row, column=0, padx=10, pady=5)
+
+        #     username_entry = ctk.CTkEntry(self)
+        #     username_entry.insert(0, username)
+        #     username_entry.grid(row=row, column=1, padx=10, pady=5)
+
+        #     password_entry = ctk.CTkEntry(self)
+        #     password_entry.insert(0, password)
+        #     password_entry.grid(row=row, column=2, padx=10, pady=5)
+        
+
+
+class PasswordGeneratorFrame(ctk.CTkFrame):
+    def __init__(self,parent, userService, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.userService = userService
+        self.label = ctk.CTkLabel(self, text="Password Generator")
+        self.label.pack(expand=True, fill="both")
+
+class PasswordManagerFrame(ctk.CTkFrame):
+    def __init__(self, parent, userSerice, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.userService = userSerice
+
+        self.label = ctk.CTkLabel(self,text="Manage Passwords")
+        self.label.pack(expand=True, fill="both")
+
+

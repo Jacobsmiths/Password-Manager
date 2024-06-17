@@ -2,11 +2,15 @@ import hashlib
 import json
 import os
 import secrets
+import base64
+from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
-
 
 
 # This class implements user class and aids in logic involing user applications
@@ -15,6 +19,7 @@ class UserService:
         self.user_data_file_local = None
 
     def checkUser(self, username):
+        return True
         user_data_file = '_'.join(username.split() + ['data.json'])
         self.user_data_file_local = os.path.join(DATA_DIR, user_data_file)
         if (not os.path.exists(self.user_data_file_local)):
@@ -43,31 +48,36 @@ class UserService:
         else:
             print(f"User already exists")
         
-    # def addPassword(self, password, website, webNickName=None):
-    #     if os.path.exists(self.user_data_file_local):
-    #         hashed_password, salt = self.hashPassword(passwordInput)
-    #         with open(self.user_data_file_local, 'w') as f:
-    #             user_data = {
-    #                 "username": username,
-    #                 "hashedPass": hashed_password,
-    #                 "salt": salt,
-    #                 "passwords": []
-    #             }
-    #             json.dump(user_data, f)
-    #         print(f"User created")
-    #     else:
-    #         print(f"User already exists")
+    def addPassword(self, username, password, website, webNickName=None):
+        """ This method is called when you want to update or add a password to be stored"""
+        data = self.getData(self.user_data_file_local)
+        passwords = data.get("passwords")
 
-    # def getData(self):
-    #     try:s
-    #         with open(filename, 'r') as file:
-    #         data = json.load(file)
-    #         return data
-    #     except FileNotFoundError:
-    #         return {"passwords": []}
-    #     except json.JSONDecodeError:
-    #         return {"passwords": []}
+        for entry in passwords:
+            if entry.get('website') == website:
+                entry['password'] = password
+                entry['webNickName'] = webNickName
+                entry['username'] = username
+                break
+            else:
+                passwords.append({"website": website, "username":username, "password": password, "webNickName": webNickName})
+
+        data["passwords"] = passwords
+        with open(self.user_data_file_local, 'w') as f:
+            json.dump(data, f)
+
+
+    def getData(self, filename):
+        try:
+            with open(filename, 'r') as file:
+                data = json.load(file)
+            return data
+        except FileNotFoundError:
+            return None
+        except json.JSONDecodeError:
+            return None
         
+
     def hashPassword(self, password):
         #this generates a salt used to add onto the end of passwords and this creats a 16 byte in hex (32 digits of hex)
         salt = secrets.token_hex(16)
@@ -76,23 +86,35 @@ class UserService:
         return hashed_password, salt
 
     def verifyPassword(self, stored_password, stored_salt, provided_password):
-        #this unhase
         hashed_provided_password = hashlib.sha256((provided_password + stored_salt).encode('utf-8')).hexdigest()
         return stored_password == hashed_provided_password
     
     def verifyUser(self, username, passwrd):
+        return True
         user_data_file = '_'.join(username.split() + ['data.json'])
         self.user_data_file_local = os.path.join(DATA_DIR, user_data_file)
-        data = self.getUsrData()
+        data = self.getData(self.user_data_file_local)
         hashed_passwrd, salt = data['hashedPass'], data['salt']
         return self.verifyPassword(stored_password=hashed_passwrd, stored_salt=salt, provided_password=passwrd)
-
-    def getUsrData(self):
-        if os.path.exists(self.user_data_file_local):
-            with open(self.user_data_file_local, 'r') as f:
-                user_data = json.load(f)
-                return user_data
-        else:
-            print("No user data file found for user:")
-            return None
         
+
+    def deriveKey(masterKey, salt):
+        kdf = PBKDF2HMAC(
+            algorithm= hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=1000
+        )
+        return kdf.derive(masterKey)
+
+    def encrypt(key, valueToEncrypt):
+        f = Fernet(key)
+        encryptedKey = f.encrypt(valueToEncrypt.encode())
+        return encryptedKey
+
+    def decrypt(key, encryptedKey):
+        f = Fernet(key)
+        try:
+            return f.decrypt(encryptedKey)
+        except InvalidToken:
+            return b''
