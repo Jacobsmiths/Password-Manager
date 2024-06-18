@@ -105,18 +105,15 @@ class PasswordDisplayFrame(ctk.CTkFrame):
             label = ctk.CTkLabel(self, text=header)
             label.grid(row=0, column=col, pady=10)
         
-        # for row, (website, username, password) in enumerate(entries, start=1):
-        #     website_entry = ctk.CTkEntry(self)
-        #     website_entry.insert(0, website)
-        #     website_entry.grid(row=row, column=0, padx=10, pady=5)
-
-        #     username_entry = ctk.CTkEntry(self)
-        #     username_entry.insert(0, username)
-        #     username_entry.grid(row=row, column=1, padx=10, pady=5)
-
-        #     password_entry = ctk.CTkEntry(self)
-        #     password_entry.insert(0, password)
-        #     password_entry.grid(row=row, column=2, padx=10, pady=5)
+        entries = self.userService.getDisplayableData()
+        for row, (website, username, password) in enumerate(entries, start=1):
+            color = (lambda x: "#E0E0E0" if x % 2 == 0 else "#FFFFFF")(row)
+            website_entry = ctk.CTkLabel(self, text=website, bg_color=color)
+            website_entry.grid(row=row, column=0, padx=10, pady=5)
+            username_entry = ctk.CTkLabel(self, text=username, bg_color=color)
+            username_entry.grid(row=row, column=1, padx=10, pady=5)
+            password_entry = ctk.CTkLabel(self, text=password, bg_color=color)
+            password_entry.grid(row=row, column=2, padx=10, pady=5)
         
 
 
