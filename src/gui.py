@@ -1,25 +1,24 @@
 from tkinter import messagebox
 import customtkinter as ctk
+import service
 
 ctk.set_appearance_mode("dark")
 
 class app(ctk.CTk):
-    def __init__(self, userService):
+    def __init__(self):
         super().__init__()
         self.geometry("1200x800")
         self.title("Jacob's Ultra Protected Password Manager")
 
-        self.userService = userService
+        self.userService = service.UserService()
 
-        container = ctk.CTkFrame(self)
-        container.pack(fill="both", expand=True)
+        self.container = ctk.CTkFrame(self)
+        self.container.pack(fill="both", expand=True)
 
         self.frames = {
-            "InitialLoginFrame" : InitialLoginFrame(parent=container, controller=self, userService=self.userService),
-            "PasswordManagerContainer": PasswordManagerContainer(parent=container, userService=self.userService)
+            "InitialLoginFrame" : InitialLoginFrame(parent=self.container, controller=self, userService=self.userService),
         }
     
-
         self.current_frame = self.frames[InitialLoginFrame.__name__]
         self.current_frame.pack(expand=True, fill="both")
 
@@ -27,6 +26,9 @@ class app(ctk.CTk):
         self.current_frame.pack_forget()
         self.current_frame = self.frames[frame.__name__]
         self.current_frame.pack(expand=True, fill="both")
+
+    def addFrame(self, frame):
+        self.frames[frame.__name__] = frame(parent=self.container, controller=self, userService=self.userService)
 
 class InitialLoginFrame(ctk.CTkFrame):
     def __init__(self, parent, controller, userService, **kwargs):
@@ -59,6 +61,7 @@ class InitialLoginFrame(ctk.CTkFrame):
         if(self.userService.checkUser(username)):
             if(self.userService.verifyUser(username, password)):
                 print("correct Password")
+                self.controller.addFrame(PasswordManagerContainer)
                 self.controller.showFrame(PasswordManagerContainer)
                 
             else: 
@@ -70,9 +73,9 @@ class InitialLoginFrame(ctk.CTkFrame):
 
 
 class PasswordManagerContainer(ctk.CTkFrame):
-    def __init__(self, parent, userService, **kwargs):
+    def __init__(self, parent, controller, userService, **kwargs):
         super().__init__(parent, **kwargs)
-
+        self.controller = controller
         self.userService = userService
         self.passwordDisplay = PasswordDisplayFrame(parent=self, userService=self.userService)
         self.passwordGenerator = PasswordGeneratorFrame(parent=self,userService=self.userService)

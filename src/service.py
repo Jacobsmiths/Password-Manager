@@ -14,15 +14,18 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 
 # This class implements user class and aids in logic involing user applications
-class UserService:
+class UserService():
     def __init__(self):
-        global user_data_file_local
-        user_data_file_local = None
+        self.username = None
+        self.user_data_file_local = None
+
+    def setUsername(self, username):
+        self.username = username
+        self.user_data_file_local = os.path.join(DATA_DIR, '_'.join(username.split() + ['data.json']))
 
     def checkUser(self, username):
-        user_data_file = '_'.join(username.split() + ['data.json'])
-        user_data_file_local = os.path.join(DATA_DIR, user_data_file)
-        if (not os.path.exists(user_data_file_local)):
+        self.setUsername(username=username)
+        if (not os.path.exists(self.user_data_file_local)):
             print("No user found")
             return False
         else:
@@ -30,13 +33,12 @@ class UserService:
             return True
 
     def setUpUser(self, username, passwordInput):
-        if(not user_data_file_local):
-            user_data_file = '_'.join(username.split() + ['data.json'])
-            user_data_file_local = os.path.join(DATA_DIR, user_data_file)
+        if(not self.user_data_file_local):
+            self.setUsername(username=username)
 
-        if not os.path.exists(user_data_file_local):
+        if not os.path.exists(self.user_data_file_local):
             hashed_password, salt = self.hashPassword(passwordInput)
-            with open(user_data_file_local, 'w') as f:
+            with open(self.user_data_file_local, 'w') as f:
                 user_data = {
                     "username": username,
                     "hashedPass": hashed_password,
@@ -47,10 +49,11 @@ class UserService:
             print(f"User created")
         else:
             print(f"User already exists")
+
         
     def addPassword(self, username, password, website, webNickName=None):
         """ This method is called when you want to update or add a password to be stored"""
-        data = self.getData(user_data_file_local)
+        data = self.getData(self.user_data_file_local)
         passwords = data.get("passwords")
 
         for entry in passwords:
@@ -63,14 +66,14 @@ class UserService:
                 passwords.append({"website": website, "username":username, "password": password, "webNickName": webNickName})
 
         data["passwords"] = passwords
-        with open(user_data_file_local, 'w') as f:
+        with open(self.user_data_file_local, 'w') as f:
             json.dump(data, f)
 
 
     def getDisplayableData(self):
-        data = self.getData(user_data_file_local)
+        data = self.getData()
         passwords = data.get("passwords")
-        display = [None] * 10
+        display = []
         for i in passwords:
             if(i["webNickName"]):
                 display.append((i['webNickName'],i['username'], i['password']))
@@ -79,9 +82,9 @@ class UserService:
         return display
 
 
-    def getData(self, filename):
+    def getData(self):
         try:
-            with open(filename, 'r') as file:
+            with open(file=self.user_data_file_local, mode='r') as file:
                 data = json.load(file)
             return data
         except FileNotFoundError:
@@ -102,9 +105,8 @@ class UserService:
         return stored_password == hashed_provided_password
     
     def verifyUser(self, username, passwrd):
-        user_data_file = '_'.join(username.split() + ['data.json'])
-        user_data_file_local = os.path.join(DATA_DIR, user_data_file)
-        data = self.getData(user_data_file_local)
+        self.setUsername(username=username)
+        data = self.getData()
         hashed_passwrd, salt = data['hashedPass'], data['salt']
         return self.verifyPassword(stored_password=hashed_passwrd, stored_salt=salt, provided_password=passwrd)
         
