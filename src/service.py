@@ -18,10 +18,13 @@ class UserService():
     def __init__(self):
         self.username = None
         self.user_data_file_local = None
+        self.masterKey = None
+
 
     def setUsername(self, username):
         self.username = username
         self.user_data_file_local = os.path.join(DATA_DIR, '_'.join(username.split() + ['data.json']))
+
 
     def checkUser(self, username):
         self.setUsername(username=username)
@@ -32,12 +35,24 @@ class UserService():
             print("User found")
             return True
 
-    def setUpUser(self, username, passwordInput):
+
+    def verifyUser(self, username, passwrd):
+        self.setUsername(username=username)
+        data = self.getData()
+        hashed_passwrd, salt = data['hashedPass'], data['salt']
+        if(self.verifyPassword(stored_password=hashed_passwrd, stored_salt=salt, provided_password=passwrd)):
+            self.masterKey = self.deriveKey(passwrd, salt=bytes.fromhex(salt))
+            return True
+        else:
+            return False
+    
+
+    def setUpUser(self, username, passwordInput): # TODO is create key when given password
         if(not self.user_data_file_local):
             self.setUsername(username=username)
-
+        hashed_password, salt = self.hashPassword(passwordInput)
+        self.masterKey = self.deriveKey(passwordInput, salt=bytes.fromhex(salt))
         if not os.path.exists(self.user_data_file_local):
-            hashed_password, salt = self.hashPassword(passwordInput)
             with open(self.user_data_file_local, 'w') as f:
                 user_data = {
                     "username": username,
@@ -53,21 +68,40 @@ class UserService():
         
     def addPassword(self, username, password, website, webNickName=None):
         """ This method is called when you want to update or add a password to be stored"""
-        data = self.getData(self.user_data_file_local)
-        passwords = data.get("passwords")
-
+        data = self.getData()
+        passwords = data.get("passwords",[])
+        passwordToStore = self.encrypt(self.masterKey, valueToEncrypt=password)
+        
         for entry in passwords:
             if entry.get('website') == website:
-                entry['password'] = password
+                entry['password'] = passwordToStore
                 entry['webNickName'] = webNickName
                 entry['username'] = username
                 break
-            else:
-                passwords.append({"website": website, "username":username, "password": password, "webNickName": webNickName})
+        else:
+            passwords.append({"website": website, "username": username, "password": passwordToStore, "webNickName": webNickName})
 
-        data["passwords"] = passwords
         with open(self.user_data_file_local, 'w') as f:
+            data["passwords"] = passwords
             json.dump(data, f)
+        print("Stuff stored")
+        
+        
+    def deletePassword(self, entryToDelete):
+        data = self.getData()
+        passwords = data.get('passwords')
+        if(not passwords):
+            print("There is nothing to delte")
+        else:
+            for entry in passwords:
+                if (entry.get('website') == entryToDelete or entry.get('webNickName') == entryToDelete):
+                    passwords.remove(entry)
+                    break
+        with open(self.user_data_file_local, 'w') as f:
+            data['passwords'] = passwords
+            json.dump(data, f)
+        print("stuff delted")
+        
 
 
     def getDisplayableData(self):
@@ -76,9 +110,9 @@ class UserService():
         display = []
         for i in passwords:
             if(i["webNickName"]):
-                display.append((i['webNickName'],i['username'], i['password']))
+                display.append((i['webNickName'],i['username'], self.decrypt(self.masterKey,i['password'])))
             else:
-                display.append((i['website'],i['username'], i['password']))
+                display.append((i['website'],i['username'], self.decrypt(self.masterKey,i['password'])))
         return display
 
 
@@ -103,31 +137,25 @@ class UserService():
     def verifyPassword(self, stored_password, stored_salt, provided_password):
         hashed_provided_password = hashlib.sha256((provided_password + stored_salt).encode('utf-8')).hexdigest()
         return stored_password == hashed_provided_password
-    
-    def verifyUser(self, username, passwrd):
-        self.setUsername(username=username)
-        data = self.getData()
-        hashed_passwrd, salt = data['hashedPass'], data['salt']
-        return self.verifyPassword(stored_password=hashed_passwrd, stored_salt=salt, provided_password=passwrd)
-        
 
-    def deriveKey(masterKey, salt):
+
+    def deriveKey(self, masterPass, salt):
         kdf = PBKDF2HMAC(
             algorithm= hashes.SHA256(),
             length=32,
             salt=salt,
-            iterations=1000
+            iterations=100000,
+            backend=default_backend()
         )
-        return kdf.derive(masterKey)
+        key = base64.urlsafe_b64encode(kdf.derive(masterPass.encode()))
+        return key
 
-    def encrypt(key, valueToEncrypt):
+    def encrypt(self, key, valueToEncrypt):
         f = Fernet(key)
-        encryptedKey = f.encrypt(valueToEncrypt.encode())
-        return encryptedKey
+        encryptedValue = f.encrypt(valueToEncrypt.encode())
+        return encryptedValue.hex()
 
-    def decrypt(key, encryptedKey):
+    def decrypt(self, key, valueToDecrypt):
         f = Fernet(key)
-        try:
-            return f.decrypt(encryptedKey)
-        except InvalidToken:
-            return b''
+        valueAsBytes = bytes.fromhex(valueToDecrypt)
+        return f.decrypt(valueAsBytes).decode('utf-8')
