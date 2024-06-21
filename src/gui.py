@@ -103,36 +103,39 @@ class PasswordManagerContainer(ctk.CTkFrame):
 
     
 
-class PasswordDisplayFrame(ctk.CTkFrame):
+class PasswordDisplayFrame(ctk.CTkScrollableFrame):
     def __init__(self, parent, userService, **kwargs):
         super().__init__(parent, **kwargs)
         self.userService = userService
 
+        self.updateGrid()
+    
+
+    def updateGrid(self):
+        for widget in self.winfo_children():
+            widget.grid_remove()
+        
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure(2, weight=1)
 
         headers = ["Website", "Username", "Password"]
         for col, header in enumerate(headers):
-            label = ctk.CTkLabel(self, text=header)
+            label = ctk.CTkLabel(self, text=header, font=Header2)
             label.grid(row=0, column=col, pady=10)
 
-        self.updateGrid()
-    
-
-    def updateGrid(self):
         entries = self.userService.getDisplayableData()
         for i in range(1, len(entries)):
             self.grid_rowconfigure(i, weight=0)
 
         for row, (website, username, password) in enumerate(entries, start=1):
             self.grid_rowconfigure(row, weight=0, )
-            color = (lambda x: "#3A3B3C" if x % 2 == 0 else "transparent")(row)
-            website_entry = ctk.CTkLabel(self, text=website, bg_color=color)
+            color = (lambda x: "transparent" if x % 2 == 0 else "#3A3B3C")(row)
+            website_entry = ctk.CTkLabel(self, text=website, bg_color=color, font=Text)
             website_entry.grid(row=row, column=0, sticky='nesw')
-            username_entry = ctk.CTkLabel(self, text=username, bg_color=color)
+            username_entry = ctk.CTkLabel(self, text=username, bg_color=color, font=Text)
             username_entry.grid(row=row, column=1, sticky='nesw')
-            password_entry = ctk.CTkLabel(self, text=password, bg_color=color)
+            password_entry = ctk.CTkLabel(self, text=password, bg_color=color, font=Text)
             password_entry.grid(row=row, column=2, sticky='nesw')
 
 
