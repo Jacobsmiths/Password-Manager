@@ -81,8 +81,8 @@ class PasswordManagerContainer(ctk.CTkFrame):
         self.controller = controller
         self.userService = userService
 
-        self.passwordDisplay = PasswordDisplayFrame(parent=self, userService=self.userService)
-        self.refresher = self.passwordDisplay.updateGrid
+        self.passwordDisplay = PasswordScrollableFrame(parent=self, userService=self.userService)
+        self.refresher = self.passwordDisplay.getUpdateMethod()
 
         self.passwordGenerator = PasswordGeneratorFrame(parent=self,userService=self.userService)
         self.passwordManager = PasswordManagerFrame(parent=self, userSerice=self.userService, passwordUpdated=self.refresher)
@@ -101,9 +101,57 @@ class PasswordManagerContainer(ctk.CTkFrame):
         self.passwordGenerator.propagate(False)
         self.passwordDisplay.propagate(False)
 
+
+class PasswordScrollableFrame(ctk.CTkFrame):
+    def __init__(self, parent, userService, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.userService = userService
+
+        # Create a canvas
+        self.canvas = ctk.CTkCanvas(self)
+        self.canvas.pack(side='left', fill='both', expand=True)
+
+        # Add a CTkScrollbar
+        self.scrollbar = ctk.CTkScrollbar(self, orientation='vertical', command=self.canvas.yview)
+        self.scrollbar.pack(side='right', fill='y')
+
+        # Configure the canvas to use the scrollbar
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Create a frame inside the canvas
+        self.scrollable_frame = PasswordDisplayFrame(self.canvas, self.userService)
+        self.scrollable_frame.bind("<Configure>", self.on_frame_configure)
+        self.scrollable_frame_id = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        # Bind the canvas scroll event
+        self.canvas.bind('<Configure>', self.on_canvas_configure)
+       # Bind mousewheel events for different platforms
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.canvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.canvas.bind_all("<Button-5>", self._on_mousewheel)
+
+
+    def on_frame_configure(self, event=None):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+
+    def on_canvas_configure(self, event=None):
+        # Resize the inner frame to match the canvas width
+        canvas_width = event.width
+        self.canvas.itemconfig(self.scrollable_frame_id, width=canvas_width)
+
+
+    def _on_mousewheel(self, event):
+        if event.num == 4 or event.delta > 0:
+            self.canvas.yview_scroll(-1, "units") 
+        elif event.num == 5 or event.delta < 0:
+            self.canvas.yview_scroll(1, "units")
+
+    def getUpdateMethod(self):
+        return self.scrollable_frame.updateGrid
     
 
-class PasswordDisplayFrame(ctk.CTkScrollableFrame):
+class PasswordDisplayFrame(ctk.CTkFrame):
     def __init__(self, parent, userService, **kwargs):
         super().__init__(parent, **kwargs)
         self.userService = userService
