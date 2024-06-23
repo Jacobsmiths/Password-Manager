@@ -87,21 +87,27 @@ class UserService():
         print("Stuff stored")
         
         
-    def deletePassword(self, entryToDelete):
+    def deletePassword(self, entryToDelete, getSelected):
         data = self.getData()
+        selectedList = getSelected
         passwords = data.get('passwords')
-        if(not passwords):
-            print("There is nothing to delte")
-        else:
+        
+        if(entryToDelete is not None):
             for entry in passwords:
                 if (entry.get('website') == entryToDelete or entry.get('webNickName') == entryToDelete):
                     passwords.remove(entry)
                     break
+
+
+        if(selectedList is not None):
+            for i in list(selectedList[::-1]):
+                print(i)
+                del passwords[i]
+
         with open(self.user_data_file_local, 'w') as f:
             data['passwords'] = passwords
             json.dump(data, f)
         print("stuff delted")
-        
 
 
     def getDisplayableData(self):
