@@ -1,4 +1,4 @@
-from tkinter import messagebox
+from tkinter import messagebox 
 import customtkinter as ctk
 import service
 
@@ -10,7 +10,7 @@ Text = ("Helvetica", 15)
 class app(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.geometry("1200x800")
+        self.geometry("1300x800")
         self.title("Jacob's Ultra Protected Password Manager")
 
         self.userService = service.UserService()
@@ -89,18 +89,19 @@ class PasswordManagerContainer(ctk.CTkFrame):
         self.passwordManager = PasswordManagerFrame(parent=self, userSerice=self.userService, passwordUpdated=self.refresher, getSelected=self.getSelected)
 
         self.grid_columnconfigure(0, weight=0, minsize=500)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=0, minsize= 400)
+        self.grid_columnconfigure(2, weight=1)
 
-        self.grid_rowconfigure(0, weight=1, minsize='100')
+        self.grid_rowconfigure(0, weight=1, minsize=100)
         self.grid_rowconfigure(1,weight=1)
         self.grid_rowconfigure(2,weight=1)
 
         self.passwordManager.grid(row=0, column=0, rowspan=3, sticky="nesw", padx= 3, pady=3)
-        self.passwordDisplay.grid(row=0, column=1, rowspan=2, sticky="news", padx= 3, pady=3)
+        self.passwordDisplay.grid(row=0, column=1, rowspan=2, columnspan=2, sticky="news", padx= 3, pady=3)
         self.passwordGenerator.grid(row=2, column=1, sticky="news", padx= 3, pady=3)
         self.passwordManager.propagate(False)
         self.passwordGenerator.propagate(False)
-        self.passwordDisplay.propagate(True)
+        self.passwordDisplay.propagate(False)
 
 
 class PasswordScrollableFrame(ctk.CTkFrame):
@@ -161,6 +162,7 @@ class PasswordDisplayFrame(ctk.CTkFrame):
         super().__init__(parent, **kwargs)
         self.userService = userService
         self.updateGrid()
+        
     
     def updateGrid(self):
         for widget in self.winfo_children():
@@ -171,6 +173,7 @@ class PasswordDisplayFrame(ctk.CTkFrame):
         self.grid_columnconfigure(2, weight=1)
         self.grid_columnconfigure(3, weight=0, minsize=30)
         self.grid_columnconfigure(4, weight=0, minsize=10)
+        self.grid_rowconfigure(0, weight=0)
 
         headers = ["Website", "Username", "Password"]
         for col, header in enumerate(headers):
@@ -189,12 +192,16 @@ class PasswordDisplayFrame(ctk.CTkFrame):
 
         for row, (website, username, password) in enumerate(self.entries, start=1):
             self.grid_rowconfigure(row, weight=0)
+            web=self.truncateText(website)
             color = (lambda x: "transparent" if x % 2 == 0 else "#3A3B3C")(row)
-            website_entry = ctk.CTkLabel(self, text=website, bg_color=color, font=Text)
+            webVar = ctk.StringVar(self, value=web)
+            userVar = ctk.StringVar(self, value=username)
+            passVar = ctk.StringVar(self, value=password)
+            website_entry = ctk.CTkEntry(self, textvariable=webVar, font=Text, state='readonly', border_width=0, corner_radius=0, fg_color=color, bg_color=color, justify=ctk.CENTER)
             website_entry.grid(row=row, column=0, sticky='nesw')
-            username_entry = ctk.CTkLabel(self, text=username, bg_color=color, font=Text)
+            username_entry = ctk.CTkEntry(self, textvariable=userVar, font=Text, state='readonly', border_width=0, corner_radius=0, fg_color=color, bg_color=color, justify=ctk.CENTER)
             username_entry.grid(row=row, column=1, sticky='nesw')
-            password_entry = ctk.CTkLabel(self, text=password, bg_color=color, font=Text)
+            password_entry = ctk.CTkEntry(self, textvariable=passVar, font=Text, state='readonly', border_width=0, corner_radius=0, fg_color=color, bg_color=color, justify=ctk.CENTER)
             password_entry.grid(row=row, column=2, sticky='nesw')
             blank = ctk.CTkLabel(self, text='', bg_color=color)
             blank.grid(row=row, column=3, sticky='news')
@@ -203,6 +210,12 @@ class PasswordDisplayFrame(ctk.CTkFrame):
             checkbox.grid(row=row, column=4, sticky='news')
             self.checkboxes.append((checkbox, var))
 
+    def truncateText(self, text):
+        if len(text) > 30:
+            return text[:30] + "..."  
+        else:
+            return text
+
     def selectAll(self):
         for checkbox, var in self.checkboxes:
             if self.masterVar.get() == "on":
@@ -210,13 +223,11 @@ class PasswordDisplayFrame(ctk.CTkFrame):
             else:
                 var.set("off")
 
-    def getSelectedCheckBoxes(self): #TODO is to return all selected check boxes
-        """returns a string of 1's if the index is true and 0 at the index if it is not selected"""
+    def getSelectedCheckBoxes(self):
         temp = []
         for i, (checkbox, var) in enumerate(self.checkboxes, start=0):
             if var.get() =="on":
                 temp.append(i)
-                
         return temp
 
 
@@ -224,8 +235,56 @@ class PasswordGeneratorFrame(ctk.CTkFrame):
     def __init__(self,parent, userService, **kwargs):
         super().__init__(parent, **kwargs)
         self.userService = userService
-        self.label = ctk.CTkLabel(self, text="Password Generator", font=Text)
-        self.label.pack(expand=True, fill="both")
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+
+        self.grid_rowconfigure(0,weight=1)
+        self.grid_rowconfigure(1,weight=1)
+        self.grid_rowconfigure(2,weight=1)
+        self.grid_rowconfigure(3,weight=1)
+        self.grid_rowconfigure(4,weight=1)
+        self.grid_rowconfigure(5,weight=1)
+
+
+
+        self.label = ctk.CTkLabel(self, text="Password Generator", font=Header2)
+        self.label.grid(row=0, column=0, columnspan=2)
+
+        self.generateButton = ctk.CTkButton(self, text="Generate", command=self.generatePassword, font=Text)
+        self.generateButton.grid(row=1, column=0, columnspan=2)
+
+        self.passwordVar = ctk.StringVar()
+        self.passwordEntry = ctk.CTkEntry(self, textvariable=self.passwordVar, font=Text, height=40, width=200, justify=ctk.CENTER, state='readonly')
+        self.passwordEntry.grid(row=2, column=0, columnspan=2, pady=5)
+
+        self.startCheckbox= ctk.CTkCheckBox(self, variable=ctk.StringVar(value="off"), onvalue='on', offvalue='off', width=5, text='Add as Begining:', corner_radius=2, font=Text)
+        self.startCheckbox.grid(row=3, column=0, sticky='ns', pady=5)
+        self.startEntry = ctk.CTkEntry(self,placeholder_text="add to start")
+        self.startEntry.grid(row=3, column=1, sticky='w', pady=5)
+
+        self.endCheckbox= ctk.CTkCheckBox(self, variable=ctk.StringVar(value="off"), onvalue='on', offvalue='off', width=5, text='Add as Ending:', corner_radius=2, font=Text)
+        self.endCheckbox.grid(row=4, column=0, sticky='ns', pady=5)
+        self.endEntry = ctk.CTkEntry(self,placeholder_text="add to end")
+        self.endEntry.grid(row=4, column=1, sticky='w', pady=5)
+
+        self.lengthCheckbox= ctk.CTkCheckBox(self, variable=ctk.StringVar(value="off"), onvalue='on', offvalue='off', width=5, text='Length (14 default):', corner_radius=2, font=Text)
+        self.lengthCheckbox.grid(row=5,column=0,sticky='ns', pady=5)
+        self.lengthEntry = ctk.CTkEntry(self,placeholder_text="Length")
+        self.lengthEntry.grid(row=5,column=1,sticky='w', pady=5)
+
+    def generatePassword(self):
+        start=''
+        end=''
+        length=14
+        if(self.lengthCheckbox.get()=='on'):
+            length= int(self.lengthEntry.get())
+        if(self.startCheckbox.get()=="on"):
+            start=self.startEntry.get()
+        if(self.endCheckbox.get()=='on'):
+            end=self.endEntry.get()
+        self.passwordVar.set(self.userService.generatePassword(start=start, end=end,lengthIn=length))
+        
 
 
 class PasswordManagerFrame(ctk.CTkFrame):
@@ -238,17 +297,62 @@ class PasswordManagerFrame(ctk.CTkFrame):
         self.rowconfigure(0, weight=0)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
+        self.rowconfigure(3, weight=1)
+
         self.columnconfigure(0, weight=1)
 
         self.addpasswordFrame = AddPasswordFrame(self, self.userService, passwordUpdated=passwordUpdated, fg_color='transparent')
         self.deletePasswordFrame = DeletePasswordFrame(self, self.userService, passwordUpdated=passwordUpdated, getSelected=self.getSelected , fg_color='transparent')
         self.title = ctk.CTkLabel(self,text="Manage Passwords", font=Header1)
+        self.searchPasswordFrame = SearchPasswordFrame(self, self.userService, fg_color='transparent')
+
+        self.searchPasswordFrame.grid(row=1, column=0, padx=5,pady=5)
+        self.addpasswordFrame.grid(row=2, column=0, padx=5, pady=5)
+        self.deletePasswordFrame.grid(row=3, column=0,padx=5, pady=5)
+        self.title.grid(row=0, column=0, padx=5, pady=5, sticky='ew')
+
+
+
+class SearchPasswordFrame(ctk.CTkFrame):
+    def __init__(self, parent, userService, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.userService = userService
+
+        self.rowconfigure(0, weight = 1)
+        self.rowconfigure(1, weight = 1)
+        self.rowconfigure(2, weight = 1)
+        self.rowconfigure(3, weight = 1)
+        self.rowconfigure(4, weight = 1)
+
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+
+        self.findPasswordTitle = ctk.CTkLabel(self, text='Find Password', font=Header2)
+        self.findPasswordTitle.grid(row=0, column=0, columnspan=2, padx=5, pady=2)
+
+        self.findPasswordLabel = ctk.CTkLabel(self, text='(Enter Website or Display Name)')
+        self.findPasswordLabel.grid(row=1, column=0, columnspan=2, padx=5, pady=2)
+
+        self.searchEntry = ctk.CTkEntry(self, placeholder_text="Enter", font=Text)
+        self.searchEntry.grid(row=2, column=0, columnspan=2, padx= 5, pady=8)
+
+        self.searchButton = ctk.CTkButton(self, text='Search', width=140, height=32, command=self.searchInfo)
+        self.searchButton.grid(row=3, column=0, columnspan=2, padx= 5, pady=5)
+
+        self.passwordVar = ctk.StringVar()
+        self.usernameVar = ctk.StringVar()
+        self.passwordDisplayEntry = ctk.CTkEntry(self, textvariable=self.passwordVar, font=Text, justify=ctk.CENTER, state='readonly', placeholder_text='Password', bg_color='#3A3B3C', border_width=1, corner_radius=0,fg_color='#3A3B3C')
+        self.usernameDisplayEntry = ctk.CTkEntry(self, textvariable=self.usernameVar, font=Text, justify=ctk.CENTER, state='readonly', placeholder_text='Username', bg_color='#3A3B3C', border_width=1, corner_radius=0, fg_color='#3A3B3C')
+        self.passwordDisplayEntry.grid(row=4, column=1, pady=5)
+        self.usernameDisplayEntry.grid(row=4, column=0, pady=5)
+
+    def searchInfo(self):
+        if(self.searchEntry.get() is not None):
+            username, password = self.userService.searchInfo(wanted=self.searchEntry.get())
+            self.usernameVar.set(username)
+            self.passwordVar.set(password) 
+
         
-        self.addpasswordFrame.grid(row=1, column=0, padx=5, pady=10)
-        self.deletePasswordFrame.grid(row=2, column=0,padx=5, pady=10)
-        self.title.grid(row=0, column=0, padx=5, pady=10, sticky='ew')
-
-
 class AddPasswordFrame(ctk.CTkFrame):
     def __init__(self, parent, userService, passwordUpdated, **kwargs):
         super().__init__(parent,**kwargs)

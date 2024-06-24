@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 import base64
+import string
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -97,17 +98,12 @@ class UserService():
                 if (entry.get('website') == entryToDelete or entry.get('webNickName') == entryToDelete):
                     passwords.remove(entry)
                     break
-
-
         if(selectedList is not None):
             for i in list(selectedList[::-1]):
-                print(i)
                 del passwords[i]
-
         with open(self.user_data_file_local, 'w') as f:
             data['passwords'] = passwords
             json.dump(data, f)
-        print("stuff delted")
 
 
     def getDisplayableData(self):
@@ -120,6 +116,13 @@ class UserService():
             else:
                 display.append((i['website'],i['username'], self.decrypt(self.masterKey,i['password'])))
         return display
+    
+    def searchInfo(self, wanted):
+        data = self.getData()
+        passwords = data.get("passwords")
+        for entry in passwords:
+            if(wanted in entry['webNickName'] or wanted in entry['website']):
+                return (entry['username'], self.decrypt(self.masterKey,entry['password']))
 
 
     def getData(self):
@@ -165,3 +168,10 @@ class UserService():
         f = Fernet(key)
         valueAsBytes = bytes.fromhex(valueToDecrypt)
         return f.decrypt(valueAsBytes).decode('utf-8')
+    
+    def generatePassword(self, start='', end='', lengthIn=14):
+        alphabet = string.ascii_letters + string.digits + "!#$%^.'/?&*()_-"
+        length = lengthIn - len(start) - len(end)
+        password = start + ''.join(secrets.choice(alphabet) for _ in range(length)) + end
+        return password
+        
