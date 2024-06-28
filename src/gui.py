@@ -87,22 +87,20 @@ class PasswordManagerContainer(ctk.CTkFrame):
 
         self.passwordGenerator = PasswordGeneratorFrame(parent=self,userService=self.userService)
         self.passwordManager = PasswordManagerFrame(parent=self, userSerice=self.userService, passwordUpdated=self.refresher, getSelected=self.getSelected)
+        self.importPasswords = ImportPasswordsFrame(parent=self, userService=self.userService, passwordUpdated=self.refresher)
 
-        self.grid_columnconfigure(0, weight=0, minsize=500)
-        self.grid_columnconfigure(1, weight=0, minsize= 400)
+        self.grid_columnconfigure(0, minsize=500)
+        self.grid_columnconfigure(1, minsize= 500)
         self.grid_columnconfigure(2, weight=1)
 
         self.grid_rowconfigure(0, weight=1, minsize=100)
         self.grid_rowconfigure(1,weight=1)
-        self.grid_rowconfigure(2,weight=1)
+        self.grid_rowconfigure(2, minsize=350)
 
         self.passwordManager.grid(row=0, column=0, rowspan=3, sticky="nesw", padx= 3, pady=3)
         self.passwordDisplay.grid(row=0, column=1, rowspan=2, columnspan=2, sticky="news", padx= 3, pady=3)
         self.passwordGenerator.grid(row=2, column=1, sticky="news", padx= 3, pady=3)
-        self.passwordManager.propagate(False)
-        self.passwordGenerator.propagate(False)
-        self.passwordDisplay.propagate(False)
-
+        self.importPasswords.grid(row=2,column=2, sticky='news', padx=3,pady=3)
 
 class PasswordScrollableFrame(ctk.CTkFrame):
     def __init__(self, parent, userService, **kwargs):
@@ -323,6 +321,7 @@ class SearchPasswordFrame(ctk.CTkFrame):
         self.rowconfigure(2, weight = 1)
         self.rowconfigure(3, weight = 1)
         self.rowconfigure(4, weight = 1)
+        self.rowconfigure(5, weight = 1)
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
@@ -339,18 +338,24 @@ class SearchPasswordFrame(ctk.CTkFrame):
         self.searchButton = ctk.CTkButton(self, text='Search', width=140, height=32, command=self.searchInfo)
         self.searchButton.grid(row=3, column=0, columnspan=2, padx= 5, pady=5)
 
+        
+
         self.passwordVar = ctk.StringVar()
         self.usernameVar = ctk.StringVar()
+        self.websiteVar = ctk.StringVar()
         self.passwordDisplayEntry = ctk.CTkEntry(self, textvariable=self.passwordVar, font=Text, justify=ctk.CENTER, state='readonly', placeholder_text='Password', bg_color='#3A3B3C', border_width=1, corner_radius=0,fg_color='#3A3B3C')
         self.usernameDisplayEntry = ctk.CTkEntry(self, textvariable=self.usernameVar, font=Text, justify=ctk.CENTER, state='readonly', placeholder_text='Username', bg_color='#3A3B3C', border_width=1, corner_radius=0, fg_color='#3A3B3C')
+        self.websiteDisplayEntry = ctk.CTkEntry(self, textvariable=self.websiteVar, font=Text, justify=ctk.CENTER, state='readonly', placeholder_text='Website', bg_color='#3A3B3C', border_width=1, corner_radius=0,fg_color='#3A3B3C')
         self.passwordDisplayEntry.grid(row=4, column=1, pady=5)
         self.usernameDisplayEntry.grid(row=4, column=0, pady=5)
+        self.websiteDisplayEntry.grid(row=5, column=0, columnspan=2, pady=5, padx=5, sticky='news')
 
     def searchInfo(self):
         if(self.searchEntry.get() is not None):
-            username, password = self.userService.searchInfo(wanted=self.searchEntry.get())
+            username, password, website = self.userService.searchInfo(wanted=self.searchEntry.get())
             self.usernameVar.set(username)
             self.passwordVar.set(password) 
+            self.websiteVar.set(website)
 
         
 class AddPasswordFrame(ctk.CTkFrame):
@@ -370,7 +375,7 @@ class AddPasswordFrame(ctk.CTkFrame):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
 
-        self.addPasswordTitle = ctk.CTkLabel(self, text="Add Password", font=Header2)
+        self.addPasswordTitle = ctk.CTkLabel(self, text="Add/Update Infomation", font=Header2)
         self.addPasswordTitle.grid(row=0, column=0, columnspan=2, padx=5, pady=5)
 
         self.websiteLabel = ctk.CTkLabel(self, text="Website:", font=Text)
@@ -440,6 +445,34 @@ class DeletePasswordFrame(ctk.CTkFrame):
         self.websiteEntry.delete(0, ctk.END)
         self.passwordUpdated()
 
+class ImportPasswordsFrame(ctk.CTkFrame):
+    def __init__(self, parent, passwordUpdated, userService, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.userService = userService
+        self.passwordUpdated = passwordUpdated
+
+        self.grid_rowconfigure(0, minsize=60)
+        self.grid_rowconfigure(1, minsize=50)
+        self.grid_rowconfigure(2, minsize=20)
 
 
+        self.grid_columnconfigure(0, minsize=50)
+        self.grid_columnconfigure(1, weight=1)
+
+        self.title = ctk.CTkLabel(self, text="Import Passwords via CSV", font=Header2)
+        self.title.grid(row=0, column=0, sticky='news', padx=(20,0), pady=10)
+
+        self.fileLocalLabel = ctk.CTkLabel(self, text="Enter the location of csv:", font=Text)
+        self.fileLocalEntry = ctk.CTkEntry(self, placeholder_text="location", font=Text, width=200)
+        self.fileLocalLabel.grid(row=1, column=0, pady=5, sticky='ew', padx=(20,0))
+        self.fileLocalEntry.grid(row=1, column=1, pady=5, sticky='ew', padx=(0,20))
+
+        self.submitButton = ctk.CTkButton(self, text='Submit', width=140, height=32, command=self.importInformation)
+        self.submitButton.grid(row=2, column=0, columnspan=2, pady=3,padx=3)
+
+    def importInformation(self):
+        local = self.fileLocalEntry.get()
+        self.userService.importData(local)
+        self.fileLocalEntry.delete(0, ctk.END)
+        self.passwordUpdated()
 

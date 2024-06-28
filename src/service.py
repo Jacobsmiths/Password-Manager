@@ -8,6 +8,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import csv
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -120,9 +121,14 @@ class UserService():
     def searchInfo(self, wanted):
         data = self.getData()
         passwords = data.get("passwords")
+        if(wanted[-3:] == "..."):
+            wanted = wanted[:-3]
         for entry in passwords:
-            if(wanted in entry['webNickName'] or wanted in entry['website']):
-                return (entry['username'], self.decrypt(self.masterKey,entry['password']))
+            if(entry['webNickName'] is None):
+                if(wanted in entry['website']):
+                    return (entry['username'], self.decrypt(self.masterKey,entry['password']), entry['website'])
+            elif(wanted in entry['webNickName'] or wanted in entry['website']):
+                return (entry['username'], self.decrypt(self.masterKey,entry['password']), entry['website'])
 
 
     def getData(self):
@@ -175,3 +181,20 @@ class UserService():
         password = start + ''.join(secrets.choice(alphabet) for _ in range(length)) + end
         return password
         
+    def importData(self, file_path):
+        credentials = []
+        try:
+            with open(file_path, newline='') as csvfile:
+                csvreader = csv.reader(csvfile)
+                next(csvreader) 
+                for row in csvreader:
+                    if len(row) >= 4:
+                        website = row[1]
+                        username = row[2]
+                        password = row[3]
+                        credentials.append((username, password, website))
+        except Exception as e:
+            print(f"Error reading CSV file: {e}")
+        
+        for (username, password, website) in credentials:
+            self.addPassword(username=username, website=website, password=password)
