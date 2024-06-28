@@ -1,0 +1,1 @@
+This was a summer project to make a password manager along with a chrome extension to insert passwords and usernames onto the current webpage but the extension I couldn't get to work so instead I am not gonna work on it
